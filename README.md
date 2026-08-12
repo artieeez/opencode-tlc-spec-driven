@@ -11,25 +11,21 @@ An opencode plugin centered on [tlc-spec-driven](https://github.com/arturwebber/
 
 ## Install
 
-As an npm package:
+### Project-scoped
 
 ```bash
-opencode plugin opencode-tlc-spec-driven
+opencode plugin opencode-tlc-spec-driven     # plugin → project config
+npx skills add artieeez/opencode-tlc-spec-driven -s '*' -y   # skills → .agents/skills/
 ```
 
-The companion skills ship in the package under `skill/` but are **not auto-installed** — copy them into your skills directory manually:
+### Global
 
 ```bash
-cp -r node_modules/opencode-tlc-spec-driven/skill/tlc-branching ~/.agents/skills/
-cp -r node_modules/opencode-tlc-spec-driven/skill/tlc-create-pr ~/.agents/skills/
+opencode plugin opencode-tlc-spec-driven --global    # plugin → global config
+npx skills add artieeez/opencode-tlc-spec-driven -s '*' -g -y -a opencode   # skills → ~/.agents/skills/
 ```
 
-Project-scoped alternative — drop them in the project instead of `~/.agents/skills/`:
-
-```bash
-cp -r node_modules/opencode-tlc-spec-driven/skill/tlc-branching .opencode/skills/
-cp -r node_modules/opencode-tlc-spec-driven/skill/tlc-create-pr .opencode/skills/
-```
+Skills install via [skills](https://github.com/vercel-labs/skills) (`npx` — no manual copy needed). The plugin itself is an npm package (`opencode plugin`).
 
 Repo-level plugin alternative:
 
@@ -39,8 +35,6 @@ cp -r dist ~/.opencode-plugins/  # or symlink this repo into ~/.config/opencode/
 ```
 
 ## Companion skills
-
-Shipped in the npm package under `skill/` (install manually, see above):
 
 - `skill/tlc-branching/SKILL.md` — branch conventions and worktree workflow (replaces AGENTS.md conventions); instructs the agent to use `tlc_branch` / `tlc_worktree`.
 - `skill/tlc-create-pr/SKILL.md` — closes out a TLC roadmap feature: sync ROADMAP + Mermaid `/roadmap`, merge `main`, run local `bin/ci`, open a GitHub PR when green, checkout the next branch. Migrated from the standalone skills repo.
@@ -86,4 +80,3 @@ bun run build
 
 - Session rename triggers on **agent-run** `git checkout -b` (bash tool), gated to sessions that loaded a tlc skill (`rename.scope`). `vcs.branch.updated` events carry no sessionID, so terminal-typed branch switches are not caught.
 - Worktree automation has open questions: trigger, worktree location, and who picks the branch name. See `src/worktree.ts`.
-- The companion skills are installed manually (see Install). opencode discovers `~/.agents/skills/` (global) and `.opencode/skills/` (project-scoped).
