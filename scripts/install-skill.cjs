@@ -1,34 +1,38 @@
 #!/usr/bin/env node
 /**
- * postinstall: place the companion `tlc-branching` skill into the user's
- * skills directory so it is discoverable by opencode.
+ * postinstall: place companion skills into the user's skills directory so they
+ * are discoverable by opencode.
  *
  * Target defaults to ~/.agents/skills (matching where the user keeps skills);
  * override with TLC_SKILL_DIR. Best-effort — never fails the install.
+ * Existing copies of a skill are replaced (migration-safe).
  */
-const { existsSync, mkdirSync, copyFileSync } = require("node:fs")
+const { existsSync, mkdirSync, cpSync, rmSync } = require("node:fs")
 const { homedir } = require("node:os")
 const { join, resolve } = require("node:path")
 
-const SKILL_NAME = "tlc-branching"
+const SKILLS_SRC = resolve(__dirname, "..", "skill")
+const SKILLS = ["tlc-branching", "tlc-create-pr"]
 
 function main() {
-  const source = resolve(__dirname, "..", "skill", SKILL_NAME, "SKILL.md")
-  if (!existsSync(source)) {
-    console.warn(`[tlc] skill source not found at ${source}; skipping`)
-    return
-  }
-
   const baseDir = process.env.TLC_SKILL_DIR || join(homedir(), ".agents", "skills")
-  const destDir = join(baseDir, SKILL_NAME)
-  const dest = join(destDir, "SKILL.md")
 
-  try {
-    mkdirSync(destDir, { recursive: true })
-    copyFileSync(source, dest)
-    console.log(`[tlc] installed skill tlc-branching → ${dest}`)
-  } catch (error) {
-    console.warn(`[tlc] failed to install skill: ${error.message}`)
+  for (const name of SKILLS) {
+    const source = join(SKILLS_SRC, name)
+    if (!existsSync(join(source, "SKILL.md"))) {
+      console.warn(`[tlc] skill source not found at ${source}; skipping`)
+      continue
+    }
+
+    const dest = join(baseDir, name)
+    try {
+      mkdirSync(baseDir, { recursive: true })
+      rmSync(dest, { recursive: true, force: true })
+      cpSync(source, dest, { recursive: true })
+      console.log(`[tlc] installed skill ${name} → ${dest}`)
+    } catch (error) {
+      console.warn(`[tlc] failed to install skill ${name}: ${error.message}`)
+    }
   }
 }
 

@@ -21,7 +21,7 @@ const defaultConfig = {
   rename: {
     enabled: true,
     scope: "skill-gated",
-    skillNames: ["tlc-branching", "tlc-spec-driven"],
+    skillNames: ["tlc-branching", "tlc-spec-driven", "tlc-create-pr"],
   },
   worktree: {
     basePath: ".tlc",
@@ -68,7 +68,7 @@ const sampleConfig = `{
   "rename": {
     "enabled": true,
     "scope": "skill-gated",
-    "skillNames": ["tlc-branching", "tlc-spec-driven"]
+    "skillNames": ["tlc-branching", "tlc-spec-driven", "tlc-create-pr"]
   },
 
   // Worktree automation (work in progress)

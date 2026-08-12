@@ -26,13 +26,14 @@ mkdir -p .opencode/plugins
 cp -r dist ~/.opencode-plugins/  # or symlink this repo into ~/.config/opencode/plugins/
 ```
 
-## Companion skill
+## Companion skills
 
-`skill/tlc-branching/SKILL.md` is the instruction layer:
+Installed into `~/.agents/skills/` by postinstall (replaces stale copies):
 
-- Branch conventions and worktree workflow (replaces AGENTS.md conventions)
-- Instructs the agent to use `tlc_branch` / `tlc_worktree` instead of inventing names
-- Parameters stay in `.opencode/tlc.jsonc`; the JSONC file wins on any conflict
+- `skill/tlc-branching/SKILL.md` — branch conventions and worktree workflow (replaces AGENTS.md conventions); instructs the agent to use `tlc_branch` / `tlc_worktree`.
+- `skill/tlc-create-pr/SKILL.md` — closes out a TLC roadmap feature: sync ROADMAP + Mermaid `/roadmap`, merge `main`, run local `bin/ci`, open a GitHub PR when green, checkout the next branch. Migrated from the standalone skills repo.
+
+Parameters stay in `.opencode/tlc.jsonc`; the JSONC file wins on any conflict.
 
 When removing the old conventions from `AGENTS.md`, delete the branching section and (optionally) point to this skill instead.
 
