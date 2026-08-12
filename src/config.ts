@@ -29,6 +29,9 @@ const defaultConfig = {
     launchCommand: "opencode",
     enabled: false,
   },
+  createPr: {
+    ci: "",
+  },
 } as const
 
 const tlcConfigSchema = z.object({
@@ -49,6 +52,9 @@ const tlcConfigSchema = z.object({
     baseBranch: z.string().default(defaultConfig.worktree.baseBranch),
     launchCommand: z.string().default(defaultConfig.worktree.launchCommand),
     enabled: z.boolean().default(defaultConfig.worktree.enabled),
+  }),
+  createPr: z.object({
+    ci: z.string().default(""),
   }),
 })
 
@@ -83,6 +89,12 @@ const sampleConfig = `{
     "basePath": ".tlc",
     "baseBranch": "main",
     "launchCommand": "opencode"
+  },
+
+  // tlc-create-pr: local CI command run before opening a PR.
+  // Empty (default) = skip the local CI gate.
+  "createPr": {
+    "ci": ""
   }
 }
 `
