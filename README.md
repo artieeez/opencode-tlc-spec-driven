@@ -14,7 +14,7 @@ Opinionated: built for personal projects that keep an in-repo ROADMAP (`.specs/p
 - **Branch conventions** — configuration lives in `.opencode/tlc.jsonc`, auto-created with defaults matching the `m{N}/{feature-slug}` convention. The how-to lives in the companion `tlc-branching` skill.
 - **`tlc_branch` tool** — generates and validates branch names so the agent never invents them.
 - **Session rename** — when the agent runs `git checkout -b <branch>` (or `switch -c`), the opencode session is renamed to the branch via `client.session.update()`. Scoped with `rename.scope: "skill-gated"`, so it only fires in sessions that loaded a tlc skill.
-- **`tlc_worktree` tool** *(scaffold)* — starts isolated work on a git worktree (a sibling directory) and forks the session when the current session is busy.
+- **`tlc_worktree` tool** — starts isolated work on a git worktree (a sibling directory, e.g. `<parent>/.tlc/m2-feature`), forks the current session into it, and launches a terminal running opencode there. `tlc_worktree_delete` commits + removes the worktree when the session ends.
 
 ## Install
 
@@ -60,7 +60,8 @@ The plugin auto-creates `.opencode/tlc.jsonc` on first run:
   "worktree": {
     "enabled": false,
     "basePath": ".tlc",
-    "baseBranch": "main"
+    "baseBranch": "main",
+    "launchCommand": "opencode"
   },
   "createPr": {
     "ci": ""
@@ -72,7 +73,7 @@ Four groups of settings:
 
 - `branch` — how the agent names branches.
 - `rename` — when the session is renamed to match the branch.
-- `worktree` — where and how worktree automation runs (disabled by default).
+- **`worktree`** — where and how worktree automation runs (disabled by default): `basePath` (sibling dir of the repo), `baseBranch` (branch to fork from), `launchCommand` (CLI resumed in the new terminal).
 - `createPr` — `ci`: local CI command run before opening a PR. Empty (default) = skip the local CI gate.
 
 ## Development
@@ -87,4 +88,3 @@ bun run build
 ## Notes / limitations
 
 - **Session rename** — triggers on **agent-run** `git checkout -b` (bash tool), gated to sessions that loaded a tlc skill (`rename.scope`). `vcs.branch.updated` events carry no sessionID, so terminal-typed branch switches are not caught.
-- **Worktree automation** — open questions remain: trigger, worktree location, and who picks the branch name. See `src/worktree.ts`.
