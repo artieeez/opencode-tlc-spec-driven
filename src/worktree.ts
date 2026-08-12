@@ -8,7 +8,7 @@ import {
   currentBranch,
   getProjectId,
 } from "./git"
-import { openTerminal } from "./terminal"
+import { openTerminal, type TerminalResult } from "./terminal"
 import {
   addSession,
   clearPendingDelete,
@@ -23,6 +23,11 @@ export interface OpenWorktreeResult {
   worktreePath: string
   forkedSessionID: string
   terminalLaunched: boolean
+}
+
+export interface OpenWorktreeOptions {
+  /** Injectable terminal launcher (tests pass a stub). */
+  openTerminalFn?: (cwd: string, argv?: string[], windowName?: string) => Promise<TerminalResult>
 }
 
 /**
@@ -40,6 +45,7 @@ export async function openWorktree(
   config: TlcConfig,
   branch: string,
   log: Logger,
+  options?: OpenWorktreeOptions,
 ): Promise<OpenWorktreeResult> {
   const created = await createWorktree(
     directory,
@@ -72,7 +78,8 @@ export async function openWorktree(
   })
 
   const argv = [config.worktree.launchCommand, "--session", forkedSessionID]
-  const terminalResult = await openTerminal(worktreePath, argv, branch)
+  const launch = options?.openTerminalFn ?? openTerminal
+  const terminalResult = await launch(worktreePath, argv, branch)
   if (!terminalResult.success) {
     log.warn(
       `[tlc] Terminal launch failed: ${terminalResult.error}. ` +

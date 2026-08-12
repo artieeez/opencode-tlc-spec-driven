@@ -1,6 +1,6 @@
 import { z } from "zod"
 import { parse as parseJsonc } from "jsonc-parser"
-import { mkdir } from "node:fs/promises"
+import { mkdir, readFile, writeFile } from "node:fs/promises"
 import * as path from "node:path"
 
 /**
@@ -93,15 +93,16 @@ export async function loadTlcConfig(
 ): Promise<TlcConfig> {
   const configPath = path.join(directory, CONFIG_FILE)
   try {
-    const file = Bun.file(configPath)
-    if (!(await file.exists())) {
+    let content: string
+    try {
+      content = await readFile(configPath, "utf8")
+    } catch {
       await mkdir(path.dirname(configPath), { recursive: true })
-      await Bun.write(configPath, sampleConfig)
+      await writeFile(configPath, sampleConfig)
       log.warn(`[tlc] Created default config: ${configPath}`)
       return tlcConfigSchema.parse({})
     }
 
-    const content = await file.text()
     const parsed = parseJsonc(content)
     if (parsed === undefined) {
       log.warn(`[tlc] Invalid ${CONFIG_FILE} syntax, using defaults`)

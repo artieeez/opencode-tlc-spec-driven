@@ -11,6 +11,7 @@ import * as fs from "node:fs"
 import * as fsPromises from "node:fs/promises"
 import * as os from "node:os"
 import * as path from "node:path"
+import { spawn, spawnSync } from "node:child_process"
 
 export type TerminalType = "tmux" | "macos" | "linux-desktop" | "windows"
 
@@ -71,9 +72,39 @@ async function writeScript(cwd: string, argv?: string[]): Promise<string> {
     getTempDir(),
     `tlc-worktree-${Date.now()}-${Math.random().toString(36).slice(2)}.sh`,
   )
-  await Bun.write(scriptPath, buildTerminalScript(cwd, argv))
+  await fsPromises.writeFile(scriptPath, buildTerminalScript(cwd, argv))
   await fsPromises.chmod(scriptPath, 0o755)
   return scriptPath
+}
+
+/** Spawn a command, collecting stdout/stderr, resolving with exit code. */
+function run(cmd: string, args: string[], options?: { detached?: boolean }): Promise<{
+  code: number
+  stdout: string
+  stderr: string
+}> {
+  return new Promise((resolve) => {
+    const child = spawn(cmd, args, {
+      stdio: ["ignore", "pipe", "pipe"],
+      detached: options?.detached,
+    })
+    let stdout = ""
+    let stderr = ""
+    child.stdout?.on("data", (d) => (stdout += String(d)))
+    child.stderr?.on("data", (d) => (stderr += String(d)))
+    child.on("error", (e) => resolve({ code: -1, stdout, stderr: e.message }))
+    child.on("close", (code) => resolve({ code: code ?? -1, stdout, stderr }))
+  })
+}
+
+/** Spawn detached and forget (best-effort, no wait). */
+function runDetached(cmd: string, args: string[]): void {
+  try {
+    const child = spawn(cmd, args, { stdio: "ignore", detached: true })
+    child.unref()
+  } catch {
+    // best-effort
+  }
 }
 
 /** Detect the current macOS terminal from env vars (most reliable first). */
@@ -120,9 +151,8 @@ async function openTmuxWindow(cwd: string, argv?: string[]): Promise<TerminalRes
       const scriptPath = await writeScript(cwd, argv)
       args.push("--", "bash", scriptPath)
     }
-    const proc = Bun.spawn(["tmux", ...args], { stdout: "ignore", stderr: "pipe" })
-    const [stderr, exitCode] = await Promise.all([new Response(proc.stderr).text(), proc.exited])
-    if (exitCode !== 0) return { success: false, error: `tmux: ${stderr.trim()}` }
+    const { code, stderr } = await run("tmux", args)
+    if (code !== 0) return { success: false, error: `tmux: ${stderr.trim()}` }
     return { success: true }
   } catch (error) {
     return { success: false, error: error instanceof Error ? error.message : String(error) }
@@ -138,21 +168,16 @@ async function openMacOSTerminal(cwd: string, argv?: string[]): Promise<Terminal
       case "ghostty": {
         const escaped = escapeBash(cwd)
         const command = buildBashCommandFromArgv(argv)
-        const proc = Bun.spawn(
-          [
-            "open",
-            "-na",
-            "Ghostty.app",
-            "--args",
-            `--working-directory=${cwd}`,
-            "-e",
-            "bash",
-            "-c",
-            command ? `cd "${escaped}" && ${command}` : `cd "${escaped}"`,
-          ],
-          { detached: true, stdio: ["ignore", "ignore", "ignore"] },
-        )
-        proc.unref()
+        runDetached("open", [
+          "-na",
+          "Ghostty.app",
+          "--args",
+          `--working-directory=${cwd}`,
+          "-e",
+          "bash",
+          "-c",
+          command ? `cd "${escaped}" && ${command}` : `cd "${escaped}"`,
+        ])
         await fsPromises.rm(scriptPath).catch(() => {})
         return { success: true }
       }
@@ -172,44 +197,29 @@ async function openMacOSTerminal(cwd: string, argv?: string[]): Promise<Terminal
               write text "${escapedPath}"
             end tell
           end tell`
-        const result = Bun.spawnSync(["osascript", "-e", appleScript])
-        if (result.exitCode !== 0) {
+        const result = spawnSync("osascript", ["-e", appleScript])
+        if (result.status !== 0) {
           await fsPromises.rm(scriptPath).catch(() => {})
-          return { success: false, error: `iTerm AppleScript failed: ${result.stderr.toString()}` }
+          return { success: false, error: `iTerm AppleScript failed: ${result.stderr}` }
         }
         return { success: true }
       }
       case "kitty": {
-        const proc = Bun.spawn(["kitty", "--directory", cwd, "-e", "bash", scriptPath], {
-          detached: true,
-          stdio: ["ignore", "ignore", "ignore"],
-        })
-        proc.unref()
+        runDetached("kitty", ["--directory", cwd, "-e", "bash", scriptPath])
         return { success: true }
       }
       case "alacritty": {
-        const proc = Bun.spawn(
-          ["alacritty", "--working-directory", cwd, "-e", "bash", scriptPath],
-          { detached: true, stdio: ["ignore", "ignore", "ignore"] },
-        )
-        proc.unref()
+        runDetached("alacritty", ["--working-directory", cwd, "-e", "bash", scriptPath])
         return { success: true }
       }
       case "warp": {
-        const proc = Bun.spawn(["open", "-b", "dev.warp.Warp-Stable", scriptPath], {
-          detached: true,
-          stdio: ["ignore", "ignore", "ignore"],
-        })
-        proc.unref()
+        runDetached("open", ["-b", "dev.warp.Warp-Stable", scriptPath])
         return { success: true }
       }
       default: {
         // Terminal.app — waits for completion, safe to remove script after.
-        const proc = Bun.spawn(["open", "-a", "Terminal", scriptPath], {
-          stdio: ["ignore", "ignore", "pipe"],
-        })
-        const [stderr, exitCode] = await Promise.all([new Response(proc.stderr).text(), proc.exited])
-        if (exitCode !== 0) {
+        const { code, stderr } = await run("open", ["-a", "Terminal", scriptPath])
+        if (code !== 0) {
           await fsPromises.rm(scriptPath).catch(() => {})
           return { success: false, error: `Failed to open Terminal: ${stderr.trim()}` }
         }
@@ -235,10 +245,9 @@ async function openLinuxTerminal(cwd: string, argv?: string[]): Promise<Terminal
   ]
   for (const candidate of candidates) {
     try {
-      const which = Bun.spawnSync(["which", candidate[0]], { stdout: "pipe", stderr: "pipe" })
-      if (which.exitCode !== 0) continue
-      const proc = Bun.spawn(candidate, { detached: true, stdio: ["ignore", "ignore", "ignore"] })
-      proc.unref()
+      const which = spawnSync("which", [candidate[0]], { stdio: "pipe" })
+      if (which.status !== 0) continue
+      runDetached(candidate[0], candidate.slice(1))
       return { success: true }
     } catch {
       // try next candidate
@@ -251,20 +260,12 @@ async function openLinuxTerminal(cwd: string, argv?: string[]): Promise<Terminal
 async function openWindowsTerminal(cwd: string, argv?: string[]): Promise<TerminalResult> {
   const scriptPath = await writeScript(cwd, argv)
   try {
-    const wt = Bun.spawnSync(["where", "wt"], { stdout: "pipe", stderr: "pipe" })
-    if (wt.exitCode === 0) {
-      const proc = Bun.spawn(["wt.exe", "-d", cwd, "bash", scriptPath], {
-        detached: true,
-        stdio: ["ignore", "ignore", "ignore"],
-      })
-      proc.unref()
+    const wt = spawnSync("where", ["wt"], { stdio: "pipe" })
+    if (wt.status === 0) {
+      runDetached("wt.exe", ["-d", cwd, "bash", scriptPath])
       return { success: true }
     }
-    const proc = Bun.spawn(["cmd", "/c", "start", "", scriptPath], {
-      detached: true,
-      stdio: ["ignore", "ignore", "ignore"],
-    })
-    proc.unref()
+    runDetached("cmd", ["/c", "start", "", scriptPath])
     return { success: true }
   } catch (error) {
     await fsPromises.rm(scriptPath).catch(() => {})

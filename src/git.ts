@@ -1,11 +1,13 @@
 /**
- * Safe git helpers using Bun.spawn with explicit argument arrays.
- * Avoids shell interpolation entirely (pattern from opencode-worktree).
+ * Safe git helpers using node:child_process execFile with explicit argument
+ * arrays. Avoids shell interpolation entirely (pattern from opencode-worktree).
+ * Works in both the Bun opencode runtime and the node test runner.
  */
 
 import * as os from "node:os"
 import * as path from "node:path"
 import { createHash } from "node:crypto"
+import { execFile } from "node:child_process"
 
 export type Result<T, E> = { ok: true; value: T } | { ok: false; error: E }
 
@@ -14,21 +16,25 @@ export const Result = {
   err: <E, T = never>(error: E): Result<T, E> => ({ ok: false, error }),
 }
 
+export function runCommand(
+  cmd: string,
+  args: string[],
+  cwd: string,
+): Promise<Result<string, string>> {
+  return new Promise((resolve) => {
+    execFile(cmd, args, { cwd, maxBuffer: 16 * 1024 * 1024 }, (error, stdout, stderr) => {
+      if (error) {
+        const message = (stderr?.toString() ?? "").trim() || error.message
+        resolve(Result.err(message || `${cmd} failed`))
+        return
+      }
+      resolve(Result.ok(stdout?.toString().trim() ?? ""))
+    })
+  })
+}
+
 export async function git(args: string[], cwd: string): Promise<Result<string, string>> {
-  try {
-    const proc = Bun.spawn(["git", ...args], { cwd, stdout: "pipe", stderr: "pipe" })
-    const [stdout, stderr, exitCode] = await Promise.all([
-      new Response(proc.stdout).text(),
-      new Response(proc.stderr).text(),
-      proc.exited,
-    ])
-    if (exitCode !== 0) {
-      return Result.err(stderr.trim() || `git ${args[0]} failed`)
-    }
-    return Result.ok(stdout.trim())
-  } catch (error) {
-    return Result.err(error instanceof Error ? error.message : String(error))
-  }
+  return runCommand("git", args, cwd)
 }
 
 export async function currentBranch(cwd: string): Promise<Result<string, string>> {
