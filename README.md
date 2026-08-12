@@ -14,15 +14,15 @@ An opencode plugin centered on [tlc-spec-driven](https://github.com/arturwebber/
 ### Project-scoped
 
 ```bash
-opencode plugin opencode-tlc-spec-driven     # plugin → project config
-npx skills add artieeez/opencode-tlc-spec-driven -s '*' -y   # skills → .agents/skills/
+opencode plugin opencode-tlc-spec-driven
+npx skills add artieeez/opencode-tlc-spec-driven -s '*' -y
 ```
 
 ### Global
 
 ```bash
-opencode plugin opencode-tlc-spec-driven --global    # plugin → global config
-npx skills add artieeez/opencode-tlc-spec-driven -s '*' -g -y -a opencode   # skills → ~/.agents/skills/
+opencode plugin opencode-tlc-spec-driven --global
+npx skills add artieeez/opencode-tlc-spec-driven -s '*' -g -y -a opencode
 ```
 
 Skills install via [skills](https://github.com/vercel-labs/skills) (`npx` — no manual copy needed). The plugin itself is an npm package (`opencode plugin`).
