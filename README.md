@@ -17,9 +17,21 @@ As an npm package:
 opencode plugin opencode-tlc-spec-driven
 ```
 
-The `postinstall` places the `tlc-branching` skill into `~/.agents/skills/` (override with `TLC_SKILL_DIR`). Point it at the plugin for install-per-project (default) or add `--global`.
+The companion skills ship in the package under `skill/` but are **not auto-installed** — copy them into your skills directory manually:
 
-Repo-level alternative:
+```bash
+cp -r node_modules/opencode-tlc-spec-driven/skill/tlc-branching ~/.agents/skills/
+cp -r node_modules/opencode-tlc-spec-driven/skill/tlc-create-pr ~/.agents/skills/
+```
+
+Project-scoped alternative — drop them in the project instead of `~/.agents/skills/`:
+
+```bash
+cp -r node_modules/opencode-tlc-spec-driven/skill/tlc-branching .opencode/skills/
+cp -r node_modules/opencode-tlc-spec-driven/skill/tlc-create-pr .opencode/skills/
+```
+
+Repo-level plugin alternative:
 
 ```bash
 mkdir -p .opencode/plugins
@@ -28,7 +40,7 @@ cp -r dist ~/.opencode-plugins/  # or symlink this repo into ~/.config/opencode/
 
 ## Companion skills
 
-Installed into `~/.agents/skills/` by postinstall (replaces stale copies):
+Shipped in the npm package under `skill/` (install manually, see above):
 
 - `skill/tlc-branching/SKILL.md` — branch conventions and worktree workflow (replaces AGENTS.md conventions); instructs the agent to use `tlc_branch` / `tlc_worktree`.
 - `skill/tlc-create-pr/SKILL.md` — closes out a TLC roadmap feature: sync ROADMAP + Mermaid `/roadmap`, merge `main`, run local `bin/ci`, open a GitHub PR when green, checkout the next branch. Migrated from the standalone skills repo.
@@ -74,4 +86,4 @@ bun run build
 
 - Session rename triggers on **agent-run** `git checkout -b` (bash tool), gated to sessions that loaded a tlc skill (`rename.scope`). `vcs.branch.updated` events carry no sessionID, so terminal-typed branch switches are not caught.
 - Worktree automation has open questions: trigger, worktree location, and who picks the branch name. See `src/worktree.ts`.
-- The companion skill installs into `~/.agents/skills/` via postinstall; `TLC_SKILL_DIR` overrides the destination.
+- The companion skills are installed manually (see Install). opencode discovers `~/.agents/skills/` (global) and `.opencode/skills/` (project-scoped).

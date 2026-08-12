@@ -14,7 +14,7 @@ An opencode plugin centered on [tlc-spec-driven](https://github.com/arturwebber/
 | DB access | Never touch sqlite directly — rename via `client.session.update()` (official API) |
 | Conventions source | `.opencode/tlc.jsonc` is canonical (parameters only). **Branch conventions removed from AGENTS.md**; the how-to lives in the `tlc-branching` skill |
 | Distribution | npm plugin (`opencode plugin opencode-tlc-spec-driven`). Default install = project config; `--global` for global |
-| Skill delivery | Companion skills ship in `skill/`, installed by `postinstall` (`scripts/install-skill.cjs`) → `~/.agents/skills/` (override `TLC_SKILL_DIR`) |
+| Skill delivery | Companion skills ship in `skill/` in the npm package. **Manual install** — no `postinstall` (opencode installs plugins with `ignoreScripts`, so auto-install is unreliable). Copy `skill/<name>` to `~/.agents/skills/` (global) or `.opencode/skills/` (project-scoped) |
 | Scoping | `rename.scope: "skill-gated"` — rename fires only after the `skill` tool loads a listed skill in that session (`SessionGate`) |
 | Worktree | Explicit `tlc_worktree` tool (no auto-spawn), sibling directory, session fork |
 | Naming | Skill proposes slug from spec; `tlc_branch` tool assembles + validates `m{N}/{feature-slug}` |
@@ -33,7 +33,6 @@ An opencode plugin centered on [tlc-spec-driven](https://github.com/arturwebber/
 - `src/types.ts` — `OpencodeClient = ReturnType<typeof createOpencodeClient>`
 - `skill/tlc-branching/SKILL.md` — branch conventions + worktree how-to (replaces AGENTS.md section)
 - `skill/tlc-create-pr/` — ported PR-closing workflow + `references/mermaid-roadmap.md`
-- `scripts/install-skill.cjs` — postinstall; replaces stale copies of both skills
 - `test/branch.test.ts` — 9 tests, green
 - `test/worktree.test.ts` — 16 tests (paths, escaping, terminal detection, state store), green
 
@@ -47,7 +46,7 @@ An opencode plugin centered on [tlc-spec-driven](https://github.com/arturwebber/
 
 ## Open work (next)
 
-1. **Publish & install** — no remote yet, not pushed, not on npm. Steps: `git remote add origin …`, push, `npm publish`, then `opencode plugin opencode-tlc-spec-driven` in a real tlc project.
+1. **Publish & install** — remote exists (`artieeez/opencode-tlc-spec-driven`, pushed). Not on npm yet: `npm publish`, then `opencode plugin opencode-tlc-spec-driven` in a real tlc project + manual skill copy.
 2. **Strip AGENTS.md conventions in real projects** — delete the branching section; point at `tlc-branching`. (tlc-create-pr no longer cites AGENTS.md for naming.)
 3. **Validate skill-gating live** — confirm rename only fires after a tlc skill loads.
 4. **Worktree — DONE (prototype)** — `openWorktree` creates the worktree as a sibling of the repo, forks the session into it (`session.fork` with `query.directory`), launches a terminal via `worktree.launchCommand --session <forkedId>`, and records the mapping in `src/state.ts`. Cleanup mirrors opencode-worktree's `session.idle` + pending-delete: `tlc_worktree_delete` marks pending, `handleSessionIdle` commits + removes the worktree when the forked session ends. Not yet tested live in a terminal (needs a real opencode run); pure logic is unit-tested.
@@ -59,7 +58,13 @@ An opencode plugin centered on [tlc-spec-driven](https://github.com/arturwebber/
 npm run typecheck   # tsc --noEmit
 npm test            # vitest
 npm run build       # dist/
-node scripts/install-skill.cjs   # installs skills to ~/.agents/skills/
+```
+
+Manual skill install (postinstall was removed — opencode installs plugins with `ignoreScripts`):
+
+```bash
+cp -r node_modules/opencode-tlc-spec-driven/skill/tlc-branching ~/.agents/skills/
+cp -r node_modules/opencode-tlc-spec-driven/skill/tlc-create-pr ~/.agents/skills/
 ```
 
 ## Where else things live

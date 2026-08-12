@@ -11,11 +11,9 @@
   },
   "files": [
     "dist",
-    "skill",
-    "scripts"
+    "skill"
   ],
   "scripts": {
-    "postinstall": "node scripts/install-skill.cjs",
     "build": "rm -rf dist && tsc",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",

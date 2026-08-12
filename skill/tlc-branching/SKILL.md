@@ -45,5 +45,5 @@ The plugin renames the opencode session to the current branch automatically
 
 ## Notes
 
-- The plugin and this skill ship together. Install the plugin (`opencode plugin opencode-tlc-spec-driven`) and this skill is placed into your skills directory automatically.
+- The plugin and this skill ship together. Install the plugin (`opencode plugin opencode-tlc-spec-driven`) and copy `skill/tlc-branching/` from the package into your skills directory (`~/.agents/skills/` for global, `.opencode/skills/` for project-scoped).
 - If a convention differs from what you see in `.opencode/tlc.jsonc`, the JSONC file wins — update it, not this skill.
