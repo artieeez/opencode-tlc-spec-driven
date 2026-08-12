@@ -1,7 +1,8 @@
 import { type Plugin, tool } from "@opencode-ai/plugin"
 import { loadTlcConfig, type TlcConfig } from "./config"
 import { generateBranchName, validateBranchName } from "./branch"
-import { renameHook, type Logger } from "./rename"
+import { renameHook, SessionGate, type Logger } from "./rename"
+import { ensureWorktree } from "./worktree"
 
 /**
  * opencode-tlc-spec-driven
@@ -20,9 +21,10 @@ export const TlcSpecDrivenPlugin: Plugin = async ({ client, directory }) => {
   }
 
   const config: TlcConfig = await loadTlcConfig(directory, log)
+  const gate = new SessionGate(config.rename.skillNames)
 
   return {
-    "tool.execute.after": renameHook(client, config, log),
+    "tool.execute.after": renameHook(client, config, gate, log),
 
     tool: {
       tlc_branch: tool({
@@ -60,6 +62,45 @@ export const TlcSpecDrivenPlugin: Plugin = async ({ client, directory }) => {
           }
           const result = validateBranchName(config, args.branch)
           return result.ok ? "ok" : result.reason
+        },
+      }),
+
+      tlc_worktree: tool({
+        description:
+          "Start a new tlc feature in an isolated git worktree. Creates the worktree as a sibling of the repo on a m{N}/{feature-slug} branch and forks the current session into it. Use when the current session is already busy on a feature branch.",
+        args: {
+          branch: tool.schema
+            .string()
+            .describe("Branch name for the worktree (m{N}/{feature-slug})"),
+          milestone: tool.schema
+            .number()
+            .int()
+            .positive()
+            .describe("Milestone number N for the branch"),
+          slug: tool.schema.string().describe("Feature slug for the branch"),
+        },
+        async execute(args, ctx) {
+          const validated = validateBranchName(config, args.branch)
+          if (!validated.ok) {
+            return `Invalid branch name: ${validated.reason}. Use the tlc_branch tool to generate a valid name.`
+          }
+          if (!config.worktree.enabled) {
+            return "Worktree automation is disabled. Enable 'worktree.enabled' in .opencode/tlc.jsonc to use this tool."
+          }
+          try {
+            const target = await ensureWorktree(
+              client,
+              ctx.sessionID,
+              ctx.directory,
+              config,
+              args.branch,
+              log,
+            )
+            return `Worktree ready. Session ${target} now runs in the ${args.branch} worktree.`
+          } catch (error) {
+            log.error(`[tlc] Worktree creation failed: ${error}`)
+            return `Failed to create worktree: ${error instanceof Error ? error.message : String(error)}`
+          }
         },
       }),
     },

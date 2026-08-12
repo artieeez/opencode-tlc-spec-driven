@@ -4,32 +4,37 @@ An opencode plugin centered on [tlc-spec-driven](https://github.com/arturwebber/
 
 ## Features
 
-1. **Branch conventions** — single source of truth in `.opencode/tlc.jsonc` (auto-created with defaults matching the `m{N}/{feature-slug}` convention).
+1. **Branch conventions** — parameters live in `.opencode/tlc.jsonc` (auto-created with defaults matching the `m{N}/{feature-slug}` convention). **The how-to lives in the companion `tlc-branching` skill**, which replaces the branching section previously kept in `AGENTS.md`.
 2. **`tlc_branch` tool** — generates and validates branch names so the agent never invents them.
-3. **Session rename** — when the agent runs `git checkout -b <branch>` (or `switch -c`), the opencode session is renamed to the branch. Runs through `client.session.update()`, so the TUI and desktop app update live.
-4. **Worktree automation** *(scaffold)* — auto-start new sessions on a fresh git worktree when the main branch is busy.
+3. **Session rename** — when the agent runs `git checkout -b <branch>` (or `switch -c`), the opencode session is renamed to the branch via `client.session.update()`. Scoped with `rename.scope: "skill-gated"` so it only fires in sessions that loaded a tlc skill.
+4. **`tlc_worktree` tool** *(scaffold)* — starts isolated work on a git worktree (sibling directory) and forks the session, when the current session is busy.
 
 ## Install
 
-Repo-level (recommended for a per-project plugin):
-
-```bash
-mkdir -p .opencode/plugins
-cp -r src .opencode/plugins/tlc
-```
-
-Or global (all projects):
-
-```bash
-mkdir -p ~/.config/opencode/plugins
-cp -r src ~/.config/opencode/plugins/tlc
-```
-
-Or as an npm package (once published):
+As an npm package:
 
 ```bash
 opencode plugin opencode-tlc-spec-driven
 ```
+
+The `postinstall` places the `tlc-branching` skill into `~/.agents/skills/` (override with `TLC_SKILL_DIR`). Point it at the plugin for install-per-project (default) or add `--global`.
+
+Repo-level alternative:
+
+```bash
+mkdir -p .opencode/plugins
+cp -r dist ~/.opencode-plugins/  # or symlink this repo into ~/.config/opencode/plugins/
+```
+
+## Companion skill
+
+`skill/tlc-branching/SKILL.md` is the instruction layer:
+
+- Branch conventions and worktree workflow (replaces AGENTS.md conventions)
+- Instructs the agent to use `tlc_branch` / `tlc_worktree` instead of inventing names
+- Parameters stay in `.opencode/tlc.jsonc`; the JSONC file wins on any conflict
+
+When removing the old conventions from `AGENTS.md`, delete the branching section and (optionally) point to this skill instead.
 
 ## Configuration
 
@@ -42,7 +47,11 @@ The plugin auto-creates `.opencode/tlc.jsonc` on first run:
     "featureSlugPattern": "m{N}/{feature-slug}",
     "maxLength": 100
   },
-  "rename": { "enabled": true },
+  "rename": {
+    "enabled": true,
+    "scope": "skill-gated",
+    "skillNames": ["tlc-branching", "tlc-spec-driven"]
+  },
   "worktree": {
     "enabled": false,
     "basePath": ".tlc",
@@ -62,5 +71,6 @@ bun run build
 
 ## Notes / limitations
 
-- Session rename triggers on **agent-run** `git checkout -b` (bash tool). `vcs.branch.updated` events carry no sessionID, so terminal-typed branch switches are not caught.
+- Session rename triggers on **agent-run** `git checkout -b` (bash tool), gated to sessions that loaded a tlc skill (`rename.scope`). `vcs.branch.updated` events carry no sessionID, so terminal-typed branch switches are not caught.
 - Worktree automation has open questions: trigger, worktree location, and who picks the branch name. See `src/worktree.ts`.
+- The companion skill installs into `~/.agents/skills/` via postinstall; `TLC_SKILL_DIR` overrides the destination.
