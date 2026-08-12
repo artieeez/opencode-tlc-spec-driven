@@ -33,9 +33,10 @@ The slug should come from the feature's spec (`.specs/features/<slug>/` when pre
 When the current session is already busy on a feature branch, do not reuse it —
 start isolated work on a new git worktree:
 
-- Use the `tlc_worktree` tool (explicit, opt-in). The plugin creates the worktree as a sibling directory and forks the session into it.
+- Use the `tlc_worktree` tool (explicit, opt-in). Pass `milestone` + `slug` (or a generated `branch` name); the plugin creates the worktree as a sibling directory, forks the current session into it, and launches a terminal there running `opencode --session <forkedId>`.
 - Worktree naming follows the same `m{N}/{feature-slug}` convention.
-- Worktree location: sibling of the repo (`.tlc`-style base path is configurable in `.opencode/tlc.jsonc`).
+- Worktree location: sibling of the repo (`.tlc`-style base path is configurable in `.opencode/tlc.jsonc`). The terminal launch command is `worktree.launchCommand` (default `opencode`).
+- When the feature is done, call `tlc_worktree_delete` from the worktree session. The plugin commits any changes and removes the worktree once the session ends.
 
 ## Session naming
 

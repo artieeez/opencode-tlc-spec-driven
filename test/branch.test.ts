@@ -9,7 +9,7 @@ const config: TlcConfig = {
     maxLength: 100,
   },
   rename: { enabled: true },
-  worktree: { basePath: ".tlc", baseBranch: "main", enabled: false },
+  worktree: { basePath: ".tlc", baseBranch: "main", launchCommand: "opencode", enabled: false },
 }
 
 describe("generateBranchName", () => {

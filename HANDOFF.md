@@ -22,17 +22,20 @@ An opencode plugin centered on [tlc-spec-driven](https://github.com/arturwebber/
 
 ## Architecture / files
 
-- `src/index.ts` — plugin entry; registers `tlc_branch` + `tlc_worktree` tools, `tool.execute.after` rename hook
+- `src/index.ts` — plugin entry; registers `tlc_branch` + `tlc_worktree` + `tlc_worktree_delete` tools, `tool.execute.after` rename hook, `event` hook (`session.idle`/`session.deleted` cleanup)
 - `src/config.ts` — loads `.opencode/tlc.jsonc` (zod + jsonc-parser), auto-creates with defaults
 - `src/branch.ts` — branch name generate/validate + `parseBranchCommand`
 - `src/rename.ts` — `SessionGate` (skill-gated scoping) + `renameHook`
-- `src/git.ts` — `Bun.spawn(["git", ...])` helpers (no shell interpolation), Result types
-- `src/worktree.ts` — scaffold: `ensureWorktree` (create + fork)
+- `src/git.ts` — `Bun.spawn(["git", ...])` helpers (no shell interpolation), Result types, `createWorktree`/`removeWorktree`/`getProjectId`/sibling path resolution
+- `src/terminal.ts` — terminal launch (tmux/macOS/Linux/Windows), self-deleting temp scripts, escaping
+- `src/state.ts` — persistent session→worktree + pending-delete store (JSON, atomic writes), keyed by shared project ID
+- `src/worktree.ts` — `openWorktree` (create + fork + terminal handoff), `requestWorktreeDelete`, `handleSessionIdle`/`handleSessionDeleted` (pending-delete cleanup)
 - `src/types.ts` — `OpencodeClient = ReturnType<typeof createOpencodeClient>`
 - `skill/tlc-branching/SKILL.md` — branch conventions + worktree how-to (replaces AGENTS.md section)
 - `skill/tlc-create-pr/` — ported PR-closing workflow + `references/mermaid-roadmap.md`
 - `scripts/install-skill.cjs` — postinstall; replaces stale copies of both skills
 - `test/branch.test.ts` — 9 tests, green
+- `test/worktree.test.ts` — 16 tests (paths, escaping, terminal detection, state store), green
 
 ## Key facts (verified)
 
@@ -47,7 +50,7 @@ An opencode plugin centered on [tlc-spec-driven](https://github.com/arturwebber/
 1. **Publish & install** — no remote yet, not pushed, not on npm. Steps: `git remote add origin …`, push, `npm publish`, then `opencode plugin opencode-tlc-spec-driven` in a real tlc project.
 2. **Strip AGENTS.md conventions in real projects** — delete the branching section; point at `tlc-branching`. (tlc-create-pr no longer cites AGENTS.md for naming.)
 3. **Validate skill-gating live** — confirm rename only fires after a tlc skill loads.
-4. **Finish worktree** — `ensureWorktree` is a scaffold. Remaining: terminal launch into the worktree (desktop/TUI), session-fork→terminal handoff, cleanup on session end (mirror opencode-worktree's `session.idle` + pending-delete pattern).
+4. **Worktree — DONE (prototype)** — `openWorktree` creates the worktree as a sibling of the repo, forks the session into it (`session.fork` with `query.directory`), launches a terminal via `worktree.launchCommand --session <forkedId>`, and records the mapping in `src/state.ts`. Cleanup mirrors opencode-worktree's `session.idle` + pending-delete: `tlc_worktree_delete` marks pending, `handleSessionIdle` commits + removes the worktree when the forked session ends. Not yet tested live in a terminal (needs a real opencode run); pure logic is unit-tested.
 5. Consider `config` hook slash commands (`/tlc:…`) like opencode-conductor — deferred.
 
 ## Commands

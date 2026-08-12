@@ -26,6 +26,7 @@ const defaultConfig = {
   worktree: {
     basePath: ".tlc",
     baseBranch: "main",
+    launchCommand: "opencode",
     enabled: false,
   },
 } as const
@@ -46,6 +47,7 @@ const tlcConfigSchema = z.object({
   worktree: z.object({
     basePath: z.string().default(defaultConfig.worktree.basePath),
     baseBranch: z.string().default(defaultConfig.worktree.baseBranch),
+    launchCommand: z.string().default(defaultConfig.worktree.launchCommand),
     enabled: z.boolean().default(defaultConfig.worktree.enabled),
   }),
 })
@@ -71,11 +73,16 @@ const sampleConfig = `{
     "skillNames": ["tlc-branching", "tlc-spec-driven", "tlc-create-pr"]
   },
 
-  // Worktree automation (work in progress)
+  // Worktree automation: creates an isolated git worktree as a sibling of the
+  // repo, forks the current session into it, and launches a terminal there.
+  // basePath: directory holding worktrees (relative = sibling of the repo,
+  //           absolute paths and ~ are also accepted).
+  // launchCommand: CLI to run in the new terminal, resumed with --session <forkedId>.
   "worktree": {
     "enabled": false,
     "basePath": ".tlc",
-    "baseBranch": "main"
+    "baseBranch": "main",
+    "launchCommand": "opencode"
   }
 }
 `
