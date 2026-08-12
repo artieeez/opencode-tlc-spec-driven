@@ -1,5 +1,8 @@
 # opencode-tlc-spec-driven
 
+[![CI](https://github.com/artieeez/opencode-tlc-spec-driven/actions/workflows/ci.yml/badge.svg)](https://github.com/artieeez/opencode-tlc-spec-driven/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 An opencode plugin centered on [tlc-spec-driven](https://github.com/arturwebber/skills) workflows. It automates the branch, session, and worktree mechanics those workflows rely on, so the agent follows the conventions instead of inventing them.
 
 ## Features
