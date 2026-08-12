@@ -25,15 +25,6 @@ opencode plugin opencode-tlc-spec-driven --global
 npx skills add artieeez/opencode-tlc-spec-driven -s '*' -g -y -a opencode
 ```
 
-Skills install via [skills](https://github.com/vercel-labs/skills) (`npx` — no manual copy needed). The plugin itself is an npm package (`opencode plugin`).
-
-Repo-level plugin alternative:
-
-```bash
-mkdir -p .opencode/plugins
-cp -r dist ~/.opencode-plugins/  # or symlink this repo into ~/.config/opencode/plugins/
-```
-
 ## Companion skills
 
 - `skill/tlc-branching/SKILL.md` — branch conventions and worktree workflow (replaces AGENTS.md conventions); instructs the agent to use `tlc_branch` / `tlc_worktree`.
