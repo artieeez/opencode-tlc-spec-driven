@@ -3,7 +3,9 @@
 [![CI](https://github.com/artieeez/opencode-tlc-spec-driven/actions/workflows/ci.yml/badge.svg)](https://github.com/artieeez/opencode-tlc-spec-driven/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-An opencode plugin that runs the [tlc-spec-driven](https://github.com/tech-leads-club/agent-skills) roadmap loop: take a roadmap milestone + feature, create the `m{N}/{feature-slug}` branch (and optionally a worktree), rename the session to the branch, and after the PR move on to the next feature. It automates the branch, session, and worktree mechanics so the agent follows the conventions instead of inventing them.
+An opencode plugin that pairs with [tlc-spec-driven](https://github.com/tech-leads-club/agent-skills). The skill plans and implements features ([Specify → Design → Tasks → Execute]) but defines no branches or roadmap; this plugin introduces a roadmap pattern on top: an in-repo ROADMAP of milestones with incremental IDs (`m1`, `m2`, …), each milestone holding features that ship one per branch.
+
+Take a milestone + feature and it creates the `m{N}/{feature-slug}` branch (and optionally a worktree), renames the session to the branch, and after the PR moves on to the next feature. It automates the branch, session, and worktree mechanics so the agent follows the conventions instead of inventing them.
 
 Opinionated: built for personal projects that keep an in-repo ROADMAP (`.specs/project/ROADMAP.md`) and want to run several features in parallel across branches and worktrees. If your project doesn't use a ROADMAP or parallel worktrees, parts of this won't apply — the plugin and its tools are opt-in per convention.
 
